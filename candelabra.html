@@ -110,6 +110,12 @@
                 -moz-box-shadow: inset 0px 2px 2px 1px rgba(0, 0, 0, 0.2);
                 box-shadow: inset 0px 2px 2px 1px rgba(0, 0, 0, 0.2);
             }
+            .project.archive {
+                display: none;
+            }
+            .projects.show-archive .project.archive {
+                display: block;
+            }
             .editTimes .project-times ul {
                 border: 2px solid red;
             }
@@ -130,6 +136,16 @@
                 color: red;
                 margin-left: 15px;
             }
+            .project.archive .archive-project:before {
+                content: "un";
+                color: red;
+                margin-left: 15px;
+            }
+            .project.archive .project-name:after {
+                content: "(archived)";
+                color: green;
+                margin-left: 15px;
+            }
             .bottom-bar {
                 background: #EEE;
                 padding: 5px 0px;
@@ -148,6 +164,12 @@
             }
             .bottom-bar table td.add-button-column {
                 width: 90px;
+            }
+            .bottom-bar table td.display-archived-column {
+                width: 120px;
+            }
+            .bottom-bar table td:last-child {
+                padding-left: 0px;
             }
             .bottom-bar form {
                 margin: 0 5px;
@@ -221,14 +243,14 @@
             .bottom-bar button {
                 width: 100%;
             }
-            .clear-times, .delete-project, .edit-times {
+            .clear-times, .delete-project, .edit-times, .archive-project {
                 cursor: pointer;
                 float: right;
             }
             .separator {
                 float: right;
             }
-            .clear-times:hover, .edit-times:hover {
+            .clear-times:hover, .edit-times:hover, .archive-project:hover {
                 color: #666;
             }
             .delete-project:hover {
@@ -247,6 +269,9 @@
                         </td>
                         <td class="add-button-column">
                             <button id="add-project-button" class="btn">&plus; Project</button>
+                        </td>
+                        <td class="display-archived-column">
+                            <button id="show-archive-button" class="btn">Show archive</button>
                         </td>
                     </tr>
                 </table>
@@ -285,7 +310,7 @@
             function createProject(projectName) {
                 var project = $("<div class='project'></div>");
                 var projectHeader = $("<div class='project-header row'><div class='pull-left project-name'>" + projectName + "</div><div class='pull-right timer' data-time='0'>00:00</div></div");
-                var projectTimes = $("<div class='project-times row'><ul class='unstyled'></ul><span class='delete-project'>delete project</span><span class='separator'>&nbsp;&bull;&nbsp;</span><span class='edit-times'>edit times</span><span class='separator'>&nbsp;&bull;&nbsp;</span><span class='clear-times'>clear times</span></div>");
+                var projectTimes = $("<div class='project-times row'><ul class='unstyled'></ul><span class='delete-project'>delete project</span><span class='separator'>&nbsp;&bull;&nbsp;</span><span class='edit-times'>edit times</span><span class='separator'>&nbsp;&bull;&nbsp;</span><span class='archive-project'>archive project</span><span class='separator'>&nbsp;&bull;&nbsp;</span><span class='clear-times'>clear times</span></div>");
                 project.append(projectHeader);
                 project.append(projectTimes);
                 return project;
@@ -304,13 +329,14 @@
                     var projectName = $(".project-name", this).text();
                     var isOpen = $(this).hasClass("open");
                     var isActive = $(this).hasClass("active");
+                    var isArchive = $(this).hasClass("archive");
                     var entries = new Array();
                     $(".project-times li", this).each(function() {
                         var start = $(this).data("start");
                         var end = $(this).data("end");
                         entries.push({start: start, end: end});
                     });
-                    times.push({name: projectName, open: isOpen, active: isActive, entries:entries});
+                    times.push({name: projectName, open: isOpen, active: isActive, archive: isArchive, entries:entries});
                 });
                 localStorage.setItem("times", JSON.stringify(times));
             }
@@ -323,11 +349,15 @@
                         project = createProject(projectName);
                         var isOpen = this.open;
                         var isActive = this.active;
+                        var isArchive = this.archive;
                         if (isOpen) {
                             project.addClass("open");
                         }
                         if (isActive) {
                             project.addClass("active");
+                        }
+                        if (isArchive) {
+                            project.addClass("archive");
                         }
                         var projectTimes = $(".project-times", project);
                         $.each(this.entries, function() {
@@ -349,6 +379,10 @@
                 $(".timer").on("click", function() {
                     var previouslyActive = $(".project.active");
                     var project = $(this).closest(".project");
+                    if (project != previouslyActive && $(this).hasClass("archive")) {
+                        window.alert("Cannot start timer for archived project");
+                        return;
+                    }
                     project.toggleClass("active");
                     $(".project").not(project).removeClass("active");
                     
@@ -390,6 +424,11 @@
                     saveTimes();
                     project.removeClass("active");
                     updateTimers();
+                });
+                $(".archive-project").on("click", function() {
+                    var project = $(this).closest(".project");
+                    project.toggleClass("archive");
+                    saveTimes();
                 });
                 $(".edit-times").on("click", function() {
                     var project = $(this).closest(".project");
@@ -453,6 +492,19 @@
                 }
                 $(this).removeClass("editTimes");
             }
+            function showArchive() {
+                let projects = $(".projects");
+                if (projects.hasClass("show-archive")) {
+                    $(this).html("");
+                    $(this).html("Show archive");
+                    projects.removeClass("show-archive");
+                }
+                else {
+                    $(this).html("");
+                    $(this).html("Hide archive");
+                    projects.addClass("show-archive");
+                }
+            }
             function doUpdate() {
                 updateTimers();
                 saveTimes();
@@ -467,7 +519,9 @@
             $(function() {
                 loadTimes();
                 updateTimers();
-                
+
+                $("#show-archive-button").on("click", showArchive);
+
                 $("#add-project-button").on("click", addProject);
                 $("#add-project-name").keydown(function(event) {
                     if (event.which == 13) {
