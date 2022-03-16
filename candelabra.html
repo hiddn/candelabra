@@ -256,6 +256,91 @@
             .delete-project:hover {
                 color: #C33;
             }
+            /* The Modal (background) */
+            .modal {
+                display: none; /* Hidden by default */
+                position: fixed; /* Stay in place */
+                z-index: 1; /* Sit on top */
+                padding-top: 20px; /* Location of the box */
+                left: 0;
+                top: 0;
+                width: 100%; /* Full width */
+                height: 100%; /* Full height */
+                min-height: 200px;
+                overflow: auto; /* Enable scroll if needed */
+                background-color: rgb(0,0,0); /* Fallback color */
+                background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+            }
+
+            /* Modal Content (image) */
+            .modal-content {
+                margin: auto;
+                display: block;
+                width: 80%;
+                height: auto;
+                max-width: 700px;
+                max-height: auto;
+            }
+
+            /* Caption of Modal Image */
+            #caption {
+                margin: auto;
+                display: block;
+                width: 80%;
+                max-width: 700px;
+                /*text-align: center; */
+                text-align: left;
+                color: #ccc;
+                padding: 10px 0px;
+                padding-bottom: 300px;
+                height: 150px;
+            }
+
+            /* Add Animation */
+            .modal-content, #caption {  
+                -webkit-animation-name: zoom;
+                -webkit-animation-duration: 0.6s;
+                animation-name: zoom;
+                animation-duration: 0.6s;
+            }
+
+            @-webkit-keyframes zoom {
+                from {-webkit-transform: scale(0)} 
+                to {-webkit-transform: scale(1)}
+            }
+
+            @keyframes zoom {
+                from {transform: scale(0.1)} 
+                to {transform: scale(1)}
+            }
+
+            /* The Close Button */
+            .close {
+                position: absolute;
+                top: 15px;
+                right: 35px;
+                color: #f1f1f1;
+                font-size: 40px;
+                font-weight: bold;
+                transition: 0.3s;
+            }
+
+            .close:hover,
+            .close:focus {
+                color: #bbb;
+                text-decoration: none;
+                cursor: pointer;
+            }
+            table.weekstats, .weekstats tr, .weekstats td, .weekstats th {
+                margin: 0;
+                padding: 2px;
+                border: 1px solid black;
+                outline: 0;
+                font-size: 100%;
+                vertical-align: baseline;
+                background: transparent;
+            }
+
         </style>
     </head>
     <body>
@@ -278,7 +363,13 @@
                 </table>
             </div>
         </div>
-        
+        <!-- The Modal -->
+        <div id="myModal" tabindex="1" class="modal">
+            <span class="close" onclick="closePopup()">×</span>
+            <img class="modal-content" id="modalimg">
+            <div id="caption"></div>
+        </div>
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <script type="text/javascript">
             function updateTimers() {
@@ -493,6 +584,7 @@
                 $(this).removeClass("editTimes");
             }
             function showArchive() {
+                showPopup()
                 let projects = $(".projects");
                 if (projects.hasClass("show-archive")) {
                     $(this).html("");
@@ -566,6 +658,53 @@
                 }
                 return timeRange;
             };
+            function showPopup() {
+                var modal = document.getElementById('myModal');
+                var modalImg = document.getElementById("modalimg");
+                var captionText = document.getElementById("caption");
+                modal.style.display = "block";
+                captionText.innerHTML = "";
+                modal.focus();
+                var t_date = new Date();
+                var t = t_date.valueOf() - 604800000;
+                showStats(t)
+            }
+            function closePopup() {
+                $("#myModal").hide();
+            }
+            function showStats(t_start) {
+                let t_end = t_start + 604800000; /* Add one week to start time */
+                let msecs = 0;
+                caption = $("#caption");
+                let t_start_date = new Date(t_start);
+                let tableHTML = "<table class='weekstats'><caption>" + t_start_date.toDateString() + "</caption>";
+                tableHTML += "<tr><th>Project</th><th>Time spent</th>";
+                let week_sum = 0;
+                $(".project").each(function() {
+                    msecs = 0;
+                    let projectName = $(".project-name", this).text();
+                    $(".project-times li", this).each(function() {
+                        var start = $(this).data("start");
+                        if (start >= t_start && start < t_end) {
+                            var end = $(this).data("end");
+                            if (!end) {
+                                end = new Date();
+                            }
+                            msecs += end - start;
+                        }
+                    });
+                    //$(".timer", this).data("timer", msecs);
+                    var s = Math.round(msecs / 1000);
+                    var m = Math.floor(s / 60);
+                    var h = Math.floor(m / 60);
+                    var mm = m % 60;
+                    var stime = h + mm / 60;
+                    week_sum += stime;
+                    tableHTML += "<tr><td>" + projectName + "</td>\n<td>" + stime + "</td></tr>";
+                });
+                tableHTML += "<tr><td>Total</td><td>" + week_sum + "</td></tr></table>";
+                caption.append(tableHTML);
+            }
         </script>
     </body>
 </html>
