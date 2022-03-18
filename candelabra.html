@@ -165,10 +165,10 @@
             .bottom-bar table td.add-button-column {
                 width: 90px;
             }
-            .bottom-bar table td.display-archived-column {
-                width: 120px;
+            .bottom-bar table td.display-archived-column, td.display-stats-column {
+                width: 20px;
             }
-            .bottom-bar table td:last-child {
+            .bottom-bar table td:not(:is(:nth-child(1),:nth-child(2))) {
                 padding-left: 0px;
             }
             .bottom-bar form {
@@ -340,6 +340,9 @@
                 vertical-align: baseline;
                 background: transparent;
             }
+            table.weekstats {
+                margin-bottom: 40px;
+            }
 
         </style>
     </head>
@@ -356,7 +359,10 @@
                             <button id="add-project-button" class="btn">&plus; Project</button>
                         </td>
                         <td class="display-archived-column">
-                            <button id="show-archive-button" class="btn">Show archive</button>
+                            <button id="show-archive-button" class="btn">A</button>
+                        </td>
+                        <td class="display-stats-column">
+                            <button id="show-stats-button" class="btn">Stats</button>
                         </td>
                     </tr>
                 </table>
@@ -407,6 +413,10 @@
                 return project;
             }
             function createEntry(startDate, endDate) {
+                let oldestStartDate = $("body").data("oldestStartDate");
+                if ((typeof oldestStartDate === "undefined") || (startDate < oldestStartDate)) {
+                    $("body").data("oldestStartDate", startDate);
+                }
                 var timeRange = getTimeRange(startDate, endDate);
                 var entry = $("<li>" + timeRange + "</li>").data("start", startDate.valueOf());
                 if (endDate) {
@@ -584,16 +594,15 @@
                 $(this).removeClass("editTimes");
             }
             function showArchive() {
-                showPopup()
                 let projects = $(".projects");
                 if (projects.hasClass("show-archive")) {
                     $(this).html("");
-                    $(this).html("Show archive");
+                    $(this).html("A");
                     projects.removeClass("show-archive");
                 }
                 else {
                     $(this).html("");
-                    $(this).html("Hide archive");
+                    $(this).html("A");
                     projects.addClass("show-archive");
                 }
             }
@@ -612,6 +621,7 @@
                 loadTimes();
                 updateTimers();
 
+                $("#show-stats-button").on("click", showStats);
                 $("#show-archive-button").on("click", showArchive);
 
                 $("#add-project-button").on("click", addProject);
@@ -665,20 +675,36 @@
                 modal.style.display = "block";
                 captionText.innerHTML = "";
                 modal.focus();
-                var t_date = new Date();
-                var t = t_date.valueOf() - 604800000;
-                showStats(t)
+            }
+            function showStats() {
+                let oldestStartDate = $("body").data("oldestStartDate");
+                let t_date = new Date();
+                t_date = new Date(t_date.toISOString().slice(0,10) + " 00:00:00");
+                showPopup();
+                while (t_date.getDay() != 1) { /* Get latest Monday before now */
+                    t_date.setDate(t_date.getDate() - 1);
+                }
+                for (let i=0; ; i++) {
+                    /* Allow showWeekStats() to run one last time after t_date is older than oldestStartDate */
+                    showWeekStats(t_date.valueOf());
+                    if (t_date <= oldestStartDate) {
+                        break;
+                    }
+                    t_date.setDate(t_date.getDate() - 7);
+                }
             }
             function closePopup() {
                 $("#myModal").hide();
             }
-            function showStats(t_start) {
-                let t_end = t_start + 604800000; /* Add one week to start time */
+            function showWeekStats(t_start) {
                 let msecs = 0;
                 caption = $("#caption");
                 let t_start_date = new Date(t_start);
+                let t_end_date = new Date(t_start);
+                t_end_date.setDate(t_end_date.getDate() + 7);
+                let t_end = t_end_date.valueOf();
                 let tableHTML = "<table class='weekstats'><caption>" + t_start_date.toDateString() + "</caption>";
-                tableHTML += "<tr><th>Project</th><th>Time spent</th>";
+                tableHTML += "<tr><th>Project name</th><th>Time spent (h)</th>";
                 let week_sum = 0;
                 $(".project").each(function() {
                     msecs = 0;
@@ -700,7 +726,9 @@
                     var mm = m % 60;
                     var stime = h + mm / 60;
                     week_sum += stime;
-                    tableHTML += "<tr><td>" + projectName + "</td>\n<td>" + stime + "</td></tr>";
+                    if (stime > 0) {
+                        tableHTML += "<tr><td>" + projectName + "</td>\n<td>" + stime + "</td></tr>";
+                    }
                 });
                 tableHTML += "<tr><td>Total</td><td>" + week_sum + "</td></tr></table>";
                 caption.append(tableHTML);
