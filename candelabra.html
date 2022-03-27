@@ -102,6 +102,7 @@
             }
             .project-times li {
                 font-size: 9pt;
+                font-family: monospace, monospace;
                 margin-bottom: 3px;
                 padding: 3px 6px;
                 background: #DDD;
@@ -679,7 +680,8 @@
                 if (sm < 10) {
                     sm = "0" + sm;
                 }
-                timeRange = sh + ":" + sm + " &ndash; ";
+                var dateStr = startDate.toDateString();
+                timeRange = startDate.toDateString() + " &nbsp;&nbsp;&nbsp;" + sh + ":" + sm + " &ndash; ";
                 if (endDate) {
                     var eh = endDate.getHours();
                     if (eh < 10) {
@@ -690,6 +692,7 @@
                         em = "0" + em;
                     }
                     timeRange += eh + ":" + em;
+                    timeRange += "&nbsp;&nbsp;&nbsp; (" + my_round(getDurationInHours(endDate.valueOf() - startDate.valueOf())) + " hours)";
                 }
                 return timeRange;
             };
@@ -721,8 +724,8 @@
             function closePopup() {
                 $("#myModal").hide();
             }
-            function my_round(num) {
-                if (num == 0) {
+            function my_round(num, nozero=false) {
+                if ((num == 0) && (nozero)) {
                     return "";
                 }
                 return Math.round(num * 100) / 100;
@@ -783,31 +786,33 @@
                             }
                         });
                         //$(".timer", this).data("timer", msecs);
-                        let s = Math.round(msecs / 1000);
-                        let m = Math.floor(s / 60);
-                        let h = Math.floor(m / 60);
-                        let mm = m % 60;
-                        //let dayofweek = new Intl.DateTimeFormat('en-US', options).format(t_start_date).substring(0,3);
-                        dtime = h + mm / 60;
+                        dtime = getDurationInHours(msecs);
                         daytimes[i] = dtime;
                         stime += dtime;
                         daytimes_sum[i] += dtime;
                         week_sum += dtime;
                     }
                     if (stime > 0) {
-                        tableHTML += "<tr><th>" + projectName + "</th>\n<td class='total'>" + my_round(stime,2) + "</td>";
+                        tableHTML += "<tr><th>" + projectName + "</th>\n<td class='total'>" + my_round(stime, true) + "</td>";
                         for (let j=0; j<7; j++) {
-                            tableHTML += "\n<td>" + my_round(daytimes[j]) + "</td>";
+                            tableHTML += "\n<td>" + my_round(daytimes[j], true) + "</td>";
                         }
                         tableHTML += "</tr>";
                     }
                 });
-                tableHTML += "<tr class='total'><th>Total</th><td>" + my_round(week_sum) + "</td>";
+                tableHTML += "<tr class='total'><th>Total</th><td>" + my_round(week_sum, true) + "</td>";
                 for (let j=0; j<7; j++) {
-                    tableHTML += "<td>" + my_round(daytimes_sum[j]) + "</td>";
+                    tableHTML += "<td>" + my_round(daytimes_sum[j], true) + "</td>";
                 }
                 tableHTML += "</tr></table>";
                 caption.append(tableHTML);
+            }
+            function getDurationInHours(msecs) {
+                let s = Math.round(msecs / 1000);
+                let m = Math.floor(s / 60);
+                let h = Math.floor(m / 60);
+                let mm = m % 60;
+                return h + mm / 60;
             }
         </script>
     </body>
