@@ -334,14 +334,29 @@
             table.weekstats, .weekstats tr, .weekstats td, .weekstats th {
                 margin: 0;
                 padding: 2px;
-                border: 1px solid black;
+                border: 2px solid black;
                 outline: 0;
                 font-size: 100%;
-                vertical-align: baseline;
+                vertical-align: middle;
                 background: transparent;
+                border-collapse: collapse;
+            }
+            .weekstats td, .weekstats .cel_timespent {
+                text-align: center;
             }
             table.weekstats {
                 margin-bottom: 40px;
+            }
+            table .total {
+                color: #e8a60d;
+            }
+            .weekstats tr:first-child th:first-child {
+                word-wrap: break-all;
+                width: 250px;
+            }
+            .weekstats caption {
+                color: red;
+                font-size: 15px;
             }
 
         </style>
@@ -720,7 +735,7 @@
                 let t_start_date = new Date(the_start);
                 let tableHTML = "<table class='weekstats'><caption>" + t_start_date.toDateString() + "</caption>";
                 //tableHTML += "<tr><th>Project name</th><th colspan='8'>Time spent (h)</th>";
-                tableHTML += "<tr><th rowspan='2'>Project name</th><th colspan='8'>Time spent (h)</th>";
+                tableHTML += "<tr><th rowspan='2'>Project name</th><th colspan='8' class='cel_timespent'>Time spent (h)</th>";
                 tableHTML += "<tr><th class='total'>Total</th>";
                 for (let i=CONFIG_START_DAY; ; ) {
                     // Print days of week, based on configured preference (Monday as default)
