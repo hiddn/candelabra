@@ -378,6 +378,16 @@
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <script type="text/javascript">
+            var CONFIG_START_DAY = 1;  // Weeks start on Monday
+            var week_days = {
+                0: 'Sun',
+                1: 'Mon',
+                2: 'Tue',
+                3: 'Wed',
+                4: 'Thu',
+                5: 'Fri',
+                6: 'Sat',
+            };
             function updateTimers() {
                 $(".project").each(function() {
                     var msecs = 0;
@@ -681,7 +691,7 @@
                 let t_date = new Date();
                 t_date = new Date(t_date.toISOString().slice(0,10) + " 00:00:00");
                 showPopup();
-                while (t_date.getDay() != 1) { /* Get latest Monday before now */
+                while (t_date.getDay() != CONFIG_START_DAY) { /* Get first day of week before now (Monday as current default) */
                     t_date.setDate(t_date.getDate() - 1);
                 }
                 for (let i=0; ; i++) {
@@ -696,41 +706,89 @@
             function closePopup() {
                 $("#myModal").hide();
             }
-            function showWeekStats(t_start) {
+            function my_round(num) {
+                return (Math.round(num * 100) / 100).toFixed(2);
+            }
+            function showWeekStats(the_start) {
                 let msecs = 0;
-                caption = $("#caption");
-                let t_start_date = new Date(t_start);
-                let t_end_date = new Date(t_start);
-                t_end_date.setDate(t_end_date.getDate() + 7);
-                let t_end = t_end_date.valueOf();
-                let tableHTML = "<table class='weekstats'><caption>" + t_start_date.toDateString() + "</caption>";
-                tableHTML += "<tr><th>Project name</th><th>Time spent (h)</th>";
                 let week_sum = 0;
+                let daytimes_sum = {};
+                let caption = $("#caption");
+                let t_start_date = new Date(the_start);
+                let tableHTML = "<table class='weekstats'><caption>" + t_start_date.toDateString() + "</caption>";
+                //tableHTML += "<tr><th>Project name</th><th colspan='8'>Time spent (h)</th>";
+                tableHTML += "<tr><th rowspan='2'>Project name</th><th colspan='8'>Time spent (h)</th>";
+                tableHTML += "<tr><th class='total'>Total</th>";
+                for (let i=CONFIG_START_DAY; ; ) {
+                    // Print days of week, based on configured preference (Monday as default)
+                    tableHTML += "<th>" + week_days[i] + "</th>";
+                    i++;
+                    if (i == 7) {
+                        i = 0;
+                    }
+                    if (i == CONFIG_START_DAY) {
+                        break;
+                    }
+                }
+                tableHTML += "</tr>";
+                for (let i=0; i<7; i++) {
+                    daytimes_sum[i] = 0;
+                }
                 $(".project").each(function() {
-                    msecs = 0;
-                    let projectName = $(".project-name", this).text();
-                    $(".project-times li", this).each(function() {
-                        var start = $(this).data("start");
-                        if (start >= t_start && start < t_end) {
-                            var end = $(this).data("end");
-                            if (!end) {
-                                end = new Date();
-                            }
-                            msecs += end - start;
+                    let projectName;
+                    let stime = 0;
+                    let daytimes = {};
+                    let t_start_date = new Date(the_start);
+                    let t_end_date = new Date(the_start);
+                    let t_start, t_end;
+                    t_start_date = new Date(the_start);
+                    for (let i=0; i<7; i++) {
+                        if (i != 0) {
+                            /* using getDate() + 1 instead of adding 864000 seconds because of Daylight Savings */
+                            t_start_date.setDate(t_start_date.getDate() + 1);
                         }
-                    });
-                    //$(".timer", this).data("timer", msecs);
-                    var s = Math.round(msecs / 1000);
-                    var m = Math.floor(s / 60);
-                    var h = Math.floor(m / 60);
-                    var mm = m % 60;
-                    var stime = h + mm / 60;
-                    week_sum += stime;
+                        t_start = t_start_date.valueOf();
+                        t_end_date.setDate(t_start_date.getDate() + 1);
+                        t_end = t_end_date.valueOf();
+                        //console.log(t_start_date.toDateString());
+                        //console.log(t_start_date + "  --  " + t_end_date)
+                        msecs = 0;
+                        projectName = $(".project-name", this).text();
+                        $(".project-times li", this).each(function() {
+                            let start = $(this).data("start");
+                            if (start >= t_start && start < t_end) {
+                                let end = $(this).data("end");
+                                if (!end) {
+                                    end = new Date();
+                                }
+                                msecs += end - start;
+                            }
+                        });
+                        //$(".timer", this).data("timer", msecs);
+                        let s = Math.round(msecs / 1000);
+                        let m = Math.floor(s / 60);
+                        let h = Math.floor(m / 60);
+                        let mm = m % 60;
+                        //let dayofweek = new Intl.DateTimeFormat('en-US', options).format(t_start_date).substring(0,3);
+                        dtime = h + mm / 60;
+                        daytimes[i] = dtime;
+                        stime += dtime;
+                        daytimes_sum[i] += dtime;
+                        week_sum += dtime;
+                    }
                     if (stime > 0) {
-                        tableHTML += "<tr><td>" + projectName + "</td>\n<td>" + stime + "</td></tr>";
+                        tableHTML += "<tr><th>" + projectName + "</th>\n<td class='total'>" + my_round(stime,2) + "</td>";
+                        for (let j=0; j<7; j++) {
+                            tableHTML += "\n<td>" + my_round(daytimes[j]) + "</td>";
+                        }
+                        tableHTML += "</tr>";
                     }
                 });
-                tableHTML += "<tr><td>Total</td><td>" + week_sum + "</td></tr></table>";
+                tableHTML += "<tr class='total'><th>Total</th><td>" + my_round(week_sum) + "</td>";
+                for (let j=0; j<7; j++) {
+                    tableHTML += "<td>" + my_round(daytimes_sum[j]) + "</td>";
+                }
+                tableHTML += "</tr></table>";
                 caption.append(tableHTML);
             }
         </script>
