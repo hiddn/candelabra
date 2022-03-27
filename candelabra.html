@@ -707,7 +707,10 @@
                 $("#myModal").hide();
             }
             function my_round(num) {
-                return (Math.round(num * 100) / 100).toFixed(2);
+                if (num == 0) {
+                    return "";
+                }
+                return Math.round(num * 100) / 100;
             }
             function showWeekStats(the_start) {
                 let msecs = 0;
